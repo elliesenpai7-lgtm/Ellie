@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile</title>
+    <title>My Profile [EDITOR]</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -89,13 +89,31 @@
         body.icon-style-neon-blue .link-icon { color: #fff; text-shadow: 0 0 4px #fff, 0 0 8px #00aaff, 0 0 12px #00aaff; }
         body.icon-style-neon-green .link-icon { color: #fff; text-shadow: 0 0 4px #fff, 0 0 8px #0f0, 0 0 12px #0f0; }
         
-        /* MUSIC PLAYER */
+        /* UI, MODAL & PLAYER */
+        .action-button { position: fixed; background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 999; border: none; }
+        #editButton { bottom: 20px; right: 20px; display: none; }
         #musicPlayer { position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; padding: 10px; gap: 15px; z-index: 998; }
         .player-control { background-color: rgba(108, 117, 125, 0.5); border-radius: 50%; width: 40px; height: 40px; font-size: 16px; color: white; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #2d2d2d; color: #f1f1f1; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        fieldset { border: 1px solid #555; border-radius: 8px; margin-bottom: 20px; padding: 15px; }
+        legend { padding: 0 10px; font-weight: bold; color: #00aaff; }
+        label { display: block; margin-top: 10px; margin-bottom: 5px; }
+        input[type="text"], input[type="url"], select, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #666; background-color: #444; color: #fff; box-sizing: border-box; font-family: sans-serif; }
+        input[type="file"] { background-color: #555; padding: 8px; border-radius: 5px; width: 100%; box-sizing: border-box;}
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #addLinkButton { background-color: #28a745; color: white; }
+        .save-changes-button { background-color: #007bff; color: white; width: 100%; padding: 12px; font-size: 1.1em; }
+        .delete-btn { background-color: #dc3545; color: white; margin-left: 10px; }
+        .edit-list-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #444; padding: 8px; border-radius: 5px; }
+        .edit-list-item span { flex-grow: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .edit-list-item img { height: 20px; width: 20px; margin-right: 8px; border-radius: 3px; }
+        #themeCustomContainer, #addLinkLogoContainer { display: none; }
     </style>
 </head>
-<body class="font-roboto theme-synthwave">
-    <audio id="backgroundMusic" loop muted></audio>
+<body>
+    <audio id="backgroundMusic" muted></audio>
     <div class="container">
         <header>
             <img id="profilePhoto" src="https://via.placeholder.com/150" alt="Profile Photo">
@@ -104,24 +122,133 @@
         </header>
         <main id="linksContainer"></main>
     </div>
+    <button id="editButton" class="action-button" title="Edit Profile"><i class="fas fa-pencil"></i></button>
     <div id="musicPlayer">
         <button id="prevButton" class="player-control" title="Previous Song"><i class="fas fa-backward-step"></i></button>
         <button id="muteButton" class="player-control" title="Mute/Unmute Music"><i class="fas fa-volume-xmark"></i></button>
         <button id="nextButton" class="player-control" title="Next Song"><i class="fas fa-forward-step"></i></button>
     </div>
 
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Edit Profile</h2>
+            <fieldset>
+                <legend>Profile</legend>
+                <label for="editName">Profile Name:</label><input type="text" id="editName" placeholder="Enter your name">
+                <label for="editBio">Profile Bio:</label><textarea id="editBio" rows="3" placeholder="Write a short bio..."></textarea>
+                <label for="editPhotoUpload">Upload Profile Photo:</label><input type="file" id="editPhotoUpload" accept="image/*">
+            </fieldset>
+            <fieldset>
+                <legend>Links</legend>
+                <div id="editLinksList"></div>
+                <div class="add-link-form" style="border-top: 1px solid #555; padding-top: 15px;">
+                    <input type="text" id="newLinkText" placeholder="Link Text (e.g., Website)">
+                    <input type="url" id="newLinkUrl" placeholder="URL (https://...)">
+                    <label>Icon Type:</label>
+                    <div>
+                        <input type="radio" id="iconTypeFa" name="iconType" value="fa" checked><label for="iconTypeFa" style="display: inline-block; margin-right: 15px;"> Font Awesome</label>
+                        <input type="radio" id="iconTypeLogo" name="iconType" value="logo"><label for="iconTypeLogo" style="display: inline-block;"> Upload Logo/GIF</label>
+                    </div>
+                    <div id="addLinkIconContainer"><input type="text" id="newLinkIcon" placeholder="Font Awesome Icon (e.g., fa-solid fa-globe)"></div>
+                    <div id="addLinkLogoContainer"><input type="file" id="newLinkLogoUpload" accept="image/*,image/gif"></div>
+                    <button id="addLinkButton" style="grid-column: 1 / 3;">Add Link</button>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Appearance & Effects</legend>
+                <div>
+                    <input type="radio" id="themeTypeColor" name="themeType" value="color" checked><label for="themeTypeColor" style="display: inline-block; margin-right: 15px;"> Color Scheme</label>
+                    <input type="radio" id="themeTypeImage" name="themeType" value="image"><label for="themeTypeImage" style="display: inline-block;"> Custom Image/GIF</label>
+                </div>
+                <div id="themeColorContainer"><label for="themeSelector">Theme:</label>
+                    <select id="themeSelector">
+                        <option value="theme-synthwave">Synthwave Sunset</option><option value="theme-oceanic">Oceanic Glow</option>
+                        <option value="theme-golden-hour">Golden Hour</option><option value="theme-lush-meadow">Lush Meadow</option><option value="theme-crisp-white">Crisp & Clean</option>
+                    </select>
+                </div>
+                <div id="themeCustomContainer"><label for="themeImageUpload">Upload Background:</label><input type="file" id="themeImageUpload" accept="image/*,image/gif"></div>
+                <label for="fontSelector">Font:</label>
+                <select id="fontSelector">
+                    <option value="font-roboto">Roboto</option><option value="font-lato">Lato</option><option value="font-montserrat">Montserrat</option>
+                    <option value="font-poppins">Poppins</option><option value="font-oswald">Oswald</option><option value="font-nunito">Nunito</option>
+                    <option value="font-playfair-display">Playfair Display</option><option value="font-source-code-pro">Source Code Pro</option>
+                    <option value="font-bebas-neue">Bebas Neue</option><option value="font-lobster">Lobster</option><option value="font-pacifico">Pacifico</option><option value="font-caveat">Caveat</option>
+                </select>
+                 <label for="fontColorSelector">Font Color:</label>
+                <select id="fontColorSelector">
+                    <option value="default">Default to Theme</option><option value="font-color-hotpink">Hot Pink</option><option value="font-color-cyan">Cyan</option>
+                    <option value="font-color-gold">Gold</option><option value="font-color-lime">Lime Green</option><option value="font-color-orange">Orange</option>
+                </select>
+                <label for="linkShapeSelector">Link Shape:</label>
+                <select id="linkShapeSelector">
+                    <option value="link-shape-soft">Soft Rounded</option><option value="link-shape-pill">Pill</option><option value="link-shape-sharp">Sharp Rectangle</option>
+                    <option value="link-shape-angled">Angled</option><option value="link-shape-round-l">Round Left</option><option value="link-shape-round-r">Round Right</option>
+                </select>
+                <label for="fontGlowEffect">Glowing Font Effect:</label>
+                <select id="fontGlowEffect">
+                    <option value="none">None</option><option value="font-glow-rgb">Animated RGB</option><option value="font-glow-pulse">Pulsing White</option>
+                    <option value="font-glow-fire">Static Fire</option><option value="font-glow-ice">Static Ice</option><option value="font-glow-electric-blue">Electric Blue</option>
+                    <option value="font-glow-pink">Hot Pink</option><option value="font-glow-gold">Gold</option>
+                </select>
+                <label for="borderEffect">Neon Border Effect:</label>
+                <select id="borderEffect">
+                    <option value="none">None</option>
+                    <optgroup label="Animated"><option value="border-effect-rgb-slow">RGB Cycle (Slow)</option><option value="border-effect-rgb-fast">RGB Cycle (Fast)</option><option value="border-effect-two-tone">Cyan & Magenta Fade</option><option value="border-effect-pulse-white">Pulsing White</option><option value="border-effect-pulse-blue">Pulsing Blue</option><option value="border-effect-flicker-pink">Flickering Pink</option></optgroup>
+                    <optgroup label="Static Neon"><option value="border-effect-static-fire">Fire (Orange/Red)</option><option value="border-effect-static-ice">Ice (Light Blue)</option><option value="border-effect-static-green">Matrix Green</option><option value="border-effect-static-gold">Gold</option><option value="border-effect-static-purple">Purple</option></optgroup>
+                </select>
+                 <label for="iconStyleSelector">Neon Icon Style:</label>
+                <select id="iconStyleSelector">
+                    <option value="none">Default</option><option value="icon-style-neon-pink">Neon Pink</option><option value="icon-style-neon-blue">Neon Blue</option><option value="icon-style-neon-green">Neon Green</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>Music Playlist</legend>
+                <div id="editPlaylist"></div>
+                <label for="musicUpload">Add Song(s) to Playlist:</label>
+                <input type="file" id="musicUpload" accept="audio/*" multiple>
+                <button id="clearPlaylistButton" class="delete-btn" style="width: 100%; margin:10px 0 0 0;">Clear Entire Playlist</button>
+            </fieldset>
+            <button id="saveButton" class="save-changes-button">Save Changes & Close</button>
+        </div>
+    </div>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- IMPORTANT: YOUR PASSWORD IS SET HERE ---
+        const MY_PASSWORD = "EllieSenpai22@";
+
+        // --- IMPORTANT: SECRET KEYWORD TO SHOW EDIT BUTTON ---
+        const SECRET_KEY_SEQUENCE = ['e', 'd', 'i', 't'];
+        let userInputSequence = [];
+
         const el = {
             body: document.body, profilePhoto: document.getElementById('profilePhoto'), profileName: document.getElementById('profileName'),
-            profileBio: document.getElementById('profileBio'), linksContainer: document.getElementById('linksContainer'),
+            profileBio: document.getElementById('profileBio'), linksContainer: document.getElementById('linksContainer'), 
+            editButton: document.getElementById('editButton'), saveButton: document.getElementById('saveButton'), 
+            modal: document.getElementById('editModal'), closeButton: document.querySelector('.close-button'), 
+            editName: document.getElementById('editName'), editBio: document.getElementById('editBio'), 
+            editPhotoUpload: document.getElementById('editPhotoUpload'), editLinksList: document.getElementById('editLinksList'), 
+            addLinkButton: document.getElementById('addLinkButton'), newLinkText: document.getElementById('newLinkText'), 
+            newLinkUrl: document.getElementById('newLinkUrl'), newLinkIcon: document.getElementById('newLinkIcon'), 
+            themeSelector: document.getElementById('themeSelector'), fontSelector: document.getElementById('fontSelector'), 
+            fontGlowEffect: document.getElementById('fontGlowEffect'), borderEffect: document.getElementById('borderEffect'), 
+            themeTypeRadios: document.querySelectorAll('input[name="themeType"]'), linkShapeSelector: document.getElementById('linkShapeSelector'), 
+            iconStyleSelector: document.getElementById('iconStyleSelector'), fontColorSelector: document.getElementById('fontColorSelector'),
+            themeColorContainer: document.getElementById('themeColorContainer'), themeCustomContainer: document.getElementById('themeCustomContainer'),
+            themeImageUpload: document.getElementById('themeImageUpload'), iconTypeRadios: document.querySelectorAll('input[name="iconType"]'),
+            addLinkIconContainer: document.getElementById('addLinkIconContainer'), addLinkLogoContainer: document.getElementById('addLinkLogoContainer'),
+            newLinkLogoUpload: document.getElementById('newLinkLogoUpload'), 
             backgroundMusic: document.getElementById('backgroundMusic'), musicPlayer: document.getElementById('musicPlayer'),
             muteButton: document.getElementById('muteButton'), prevButton: document.getElementById('prevButton'),
-            nextButton: document.getElementById('nextButton')
+            nextButton: document.getElementById('nextButton'),
+            musicUpload: document.getElementById('musicUpload'), editPlaylist: document.getElementById('editPlaylist'),
+            clearPlaylistButton: document.getElementById('clearPlaylistButton')
         };
 
         let profileData = {};
-        
+        let temp = { photo: null, theme: null, logo: null };
+
         const defaultData = {
             name: "Your Name", bio: "Your bio goes here...", photoDataUrl: "https://via.placeholder.com/150",
             links: [{ text: "My Website", url: "#", icon: { type: "fa", value: "fa-solid fa-globe" } }],
@@ -130,11 +257,9 @@
             playlist: [], currentTrackIndex: 0
         };
 
-        function loadData() {
-            const savedData = localStorage.getItem('myProfileData');
-            profileData = savedData ? { ...defaultData, ...JSON.parse(savedData) } : { ...defaultData };
-        }
-
+        function saveData() { try { localStorage.setItem('myProfileData', JSON.stringify(profileData)); } catch (e) { alert("Error saving data. Playlist may be too large."); } }
+        function loadData() { const d = localStorage.getItem('myProfileData'); profileData = d ? { ...defaultData, ...JSON.parse(d) } : { ...defaultData }; }
+        
         function renderProfile() {
             el.body.className = '';
             el.body.classList.add(profileData.font, profileData.theme, profileData.fontGlow, profileData.borderEffect, profileData.linkShape, profileData.iconStyle, profileData.fontColor);
@@ -143,65 +268,156 @@
             el.body.style.backgroundImage = (profileData.themeType === 'image' && profileData.themeImageDataUrl) ? `url(${profileData.themeImageDataUrl})` : 'none';
             el.profileName.textContent = profileData.name;
             el.profileBio.textContent = profileData.bio;
-            el.profilePhoto.src = profileData.photoDataUrl;
+            el.profilePhoto.src = profileData.photoDataUrl; 
             el.linksContainer.innerHTML = '';
             (profileData.links || []).forEach(link => {
-                const linkEl = document.createElement('a');
-                linkEl.href = link.url;
-                linkEl.target = "_blank";
+                const linkEl = document.createElement('a'); linkEl.href = link.url; linkEl.target = "_blank";
                 const iconHtml = (link.icon?.type === 'logo') ? `<img src="${link.icon.value}" class="link-logo" alt="logo">` : `<i class="${link.icon?.value || 'fa-solid fa-link'} link-icon"></i>`;
                 linkEl.innerHTML = `${iconHtml}<span>${link.text}</span>`;
                 el.linksContainer.appendChild(linkEl);
             });
             setupMusicPlayer();
         }
-
+        
         function setupMusicPlayer() {
             if (profileData.playlist && profileData.playlist.length > 0) {
                 el.musicPlayer.style.display = 'flex';
-                playTrack(profileData.currentTrackIndex);
-                // Attempt to play on load, but will likely be blocked.
-                el.backgroundMusic.play().catch(e => console.log("Autoplay blocked. User must interact."));
+                playTrack(profileData.currentTrackIndex, false); // don't auto-play on render
             } else {
                 el.musicPlayer.style.display = 'none';
+                el.backgroundMusic.src = '';
             }
         }
         
-        function playTrack(index) {
+        function playTrack(index, shouldPlay = true) {
             if (!profileData.playlist || profileData.playlist.length === 0) return;
             profileData.currentTrackIndex = index;
             const track = profileData.playlist[index];
             el.backgroundMusic.src = track.dataUrl;
+            if (shouldPlay) {
+                el.backgroundMusic.play().catch(() => {});
+            }
         }
 
         function changeTrack(direction) {
-            if (!profileData.playlist || profileData.playlist.length < 2) return;
+            if (!profileData.playlist || profileData.playlist.length < 1) return;
             let newIndex = profileData.currentTrackIndex + direction;
             if (newIndex < 0) newIndex = profileData.playlist.length - 1;
             if (newIndex >= profileData.playlist.length) newIndex = 0;
             playTrack(newIndex);
-            el.backgroundMusic.play(); // Play new track immediately
         }
 
-        let musicStarted = false;
-        function startMusicOnInteraction() {
-            if (musicStarted || !profileData.playlist || profileData.playlist.length === 0) return;
-            el.backgroundMusic.play().then(() => {
-                musicStarted = true;
-                el.backgroundMusic.muted = false;
-                el.muteButton.innerHTML = `<i class="fas fa-volume-high"></i>`;
-            }).catch(e => {});
+        function renderEditor() {
+            el.editName.value = profileData.name; el.editBio.value = profileData.bio;
+            el.themeSelector.value = profileData.theme; el.fontSelector.value = profileData.font;
+            el.fontGlowEffect.value = profileData.fontGlow; el.borderEffect.value = profileData.borderEffect;
+            el.linkShapeSelector.value = profileData.linkShape; el.iconStyleSelector.value = profileData.iconStyle;
+            el.fontColorSelector.value = profileData.fontColor;
+            ['photo', 'theme', 'logo'].forEach(k => { temp[k] = null; const uploadEl = el[k === 'photo' ? 'editPhotoUpload' : k + 'Upload']; if(uploadEl) uploadEl.value = ''; });
+            const themeRadio = document.querySelector(`input[name="themeType"][value="${profileData.themeType}"]`);
+            if (themeRadio) themeRadio.checked = true;
+            toggleThemeControls();
+            
+            el.editLinksList.innerHTML = '';
+            (profileData.links || []).forEach((link, index) => {
+                const item = document.createElement('div'); item.className = 'edit-list-item';
+                const iconHtml = (link.icon?.type === 'logo') ? `<img src="${link.icon.value}" alt="logo">` : `<i class="${(link.icon?.value) || ''}"></i>`;
+                item.innerHTML = `<span>${iconHtml} ${link.text}</span><button class="delete-btn" data-type="link" data-index="${index}">Delete</button>`;
+                el.editLinksList.appendChild(item);
+            });
+            renderPlaylistEditor();
         }
+
+        function renderPlaylistEditor() {
+            el.editPlaylist.innerHTML = '';
+            (profileData.playlist || []).forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'edit-list-item';
+                item.innerHTML = `<span><i class="fas fa-music"></i> ${song.name}</span><button class="delete-btn" data-type="song" data-index="${index}">Delete</button>`;
+                el.editPlaylist.appendChild(item);
+            });
+        }
+
+        function toggleThemeControls() { const checkedRadio = document.querySelector('input[name="themeType"]:checked'); if (!checkedRadio) return; el.themeColorContainer.style.display = checkedRadio.value === 'image' ? 'none' : 'block'; el.themeCustomContainer.style.display = checkedRadio.value === 'image' ? 'block' : 'none'; }
+        function toggleIconControls() { const checkedRadio = document.querySelector('input[name="iconType"]:checked'); if (!checkedRadio) return; el.addLinkIconContainer.style.display = checkedRadio.value === 'fa' ? 'block' : 'none'; el.addLinkLogoContainer.style.display = checkedRadio.value === 'fa' ? 'none' : 'block'; }
         
-        document.body.addEventListener('click', startMusicOnInteraction, { once: true });
-        el.muteButton.addEventListener('click', () => {
-            if(!musicStarted) startMusicOnInteraction();
-            el.backgroundMusic.muted = !el.backgroundMusic.muted;
-            el.muteButton.innerHTML = `<i class="fas ${el.backgroundMusic.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>`;
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            userInputSequence.push(e.key.toLowerCase());
+            userInputSequence = userInputSequence.slice(-SECRET_KEY_SEQUENCE.length);
+            if (userInputSequence.join('') === SECRET_KEY_SEQUENCE.join('')) { el.editButton.style.display = 'flex'; }
+        });
+
+        el.editButton.addEventListener('click', () => {
+            const enteredPassword = prompt("Please enter your password to edit:");
+            if (enteredPassword === MY_PASSWORD) {
+                renderEditor();
+                el.modal.style.display = 'block';
+            } else if (enteredPassword !== null) { alert("Incorrect password."); }
+        });
+        
+        el.closeButton.addEventListener('click', () => el.modal.style.display = 'none');
+        window.addEventListener('click', (event) => { if (event.target == el.modal) el.modal.style.display = 'none'; });
+        el.editPhotoUpload.addEventListener('change', (e) => { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>temp.photo=ev.target.result; r.readAsDataURL(f); });
+        el.themeImageUpload.addEventListener('change', (e) => { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>temp.theme=ev.target.result; r.readAsDataURL(f); });
+        el.newLinkLogoUpload.addEventListener('change', (e) => { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>temp.logo=ev.target.result; r.readAsDataURL(f); });
+        el.themeTypeRadios.forEach(r => r.addEventListener('change', toggleThemeControls));
+        el.iconTypeRadios.forEach(r => r.addEventListener('change', toggleIconControls));
+        
+        el.musicUpload.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (!files.length) return;
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (!profileData.playlist) profileData.playlist = [];
+                    profileData.playlist.push({ name: file.name, dataUrl: e.target.result });
+                    renderPlaylistEditor();
+                };
+                reader.readAsDataURL(file);
+            });
+            event.target.value = '';
+        });
+
+        el.editPlaylist.addEventListener('click', (e) => { if (e.target.dataset.type === 'song') { profileData.playlist.splice(e.target.dataset.index, 1); renderPlaylistEditor(); } });
+        el.clearPlaylistButton.addEventListener('click', () => { profileData.playlist = []; renderPlaylistEditor(); });
+        
+        el.editLinksList.addEventListener('click', (e) => { if (e.target.dataset.type === 'link') { profileData.links.splice(e.target.dataset.index, 1); renderEditor(); } });
+        
+        el.addLinkButton.addEventListener('click', () => {
+            if (!el.newLinkText.value || !el.newLinkUrl.value) return alert('Please fill in Link Text and URL.');
+            const iconType = document.querySelector('input[name="iconType"]:checked').value;
+            let iconData = {};
+            if (iconType === 'fa') { iconData = { type: 'fa', value: el.newLinkIcon.value }; }
+            else { if (!temp.logo) return alert('Please upload a logo file.'); iconData = { type: 'logo', value: temp.logo }; }
+            if (!profileData.links) profileData.links = [];
+            profileData.links.push({ text: el.newLinkText.value, url: el.newLinkUrl.value, icon: iconData });
+            el.newLinkText.value = ''; el.newLinkUrl.value = ''; el.newLinkIcon.value = ''; el.newLinkLogoUpload.value = ''; temp.logo = null;
+            renderEditor();
+        });
+
+        el.muteButton.addEventListener('click', () => { 
+            if(el.backgroundMusic.paused) el.backgroundMusic.play();
+            el.backgroundMusic.muted = !el.backgroundMusic.muted; 
+            el.muteButton.innerHTML = `<i class="fas ${el.backgroundMusic.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>`; 
         });
         el.nextButton.addEventListener('click', () => changeTrack(1));
         el.prevButton.addEventListener('click', () => changeTrack(-1));
         el.backgroundMusic.onended = () => changeTrack(1);
+
+        el.saveButton.addEventListener('click', () => {
+            profileData.name = el.editName.value; profileData.bio = el.editBio.value;
+            profileData.theme = el.themeSelector.value; profileData.font = el.fontSelector.value;
+            profileData.fontGlow = el.fontGlowEffect.value; profileData.borderEffect = el.borderEffect.value;
+            profileData.linkShape = el.linkShapeSelector.value; profileData.iconStyle = el.iconStyleSelector.value;
+            profileData.fontColor = el.fontColorSelector.value;
+            profileData.themeType = document.querySelector('input[name="themeType"]:checked').value;
+            if (temp.photo) profileData.photoDataUrl = temp.photo;
+            if (temp.theme) profileData.themeImageDataUrl = temp.theme;
+            if (profileData.themeType === 'color') profileData.themeImageDataUrl = null;
+            if (profileData.currentTrackIndex >= profileData.playlist.length) profileData.currentTrackIndex = 0;
+            saveData(); renderProfile(); el.modal.style.display = 'none';
+        });
 
         loadData();
         renderProfile();
